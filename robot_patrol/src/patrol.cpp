@@ -7,6 +7,8 @@
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include <cmath>
 #include <memory>
+#include <tuple>
+#include <vector>
 
 class Patrol : public rclcpp::Node {
 
@@ -17,7 +19,7 @@ public:
         std::bind(&Patrol::scanCallback, this, std::placeholders::_1));
     twist_pub_ =
         this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
-    timer_ = this->create_wall_timer(std::chrono::milliseconds(100),
+    timer_ = this->create_wall_timer(std::chrono::milliseconds(200),
                                      std::bind(&Patrol::publishOdom, this));
   }
 
@@ -42,16 +44,54 @@ private:
   void scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
     int start = std::round((msg->ranges.size() - 1) * 0.25); // -pi/2
     int end = std::round((msg->ranges.size() - 1) * 0.75);   // +pi/2
-    float max_range = 0;
-    int idx = 0;
+
+    // minimum range for considering laser ray as "clear"
+    float min_range = 0.5; // meters
+
+    double curr_area = 0;
+    int curr_idx_start = -1;
+
+    std::vector<std::tuple<int, int, double>> laserSections;
 
     for (int i = start; i <= end; i++) {
-      if (!std::isinf(msg->ranges[i]) && msg->ranges[i] > max_range) {
-        max_range = msg->ranges[i];
-        idx = i;
+      if (!std::isinf(msg->ranges[i]) &&
+          msg->ranges[i] > min_range) { // if range is valid
+
+        if (curr_idx_start == -1) { // set starting idx
+          curr_idx_start = i;
+        }
+
+        // sum area of laser ray
+        curr_area += 0.5 * std::pow(msg->ranges[i], 2) * msg->angle_increment;
+
+        if (i == end ||
+            (i + 1 <= end && std::isinf(msg->ranges[i + 1]))) { // check for end
+          laserSections.emplace_back(curr_idx_start, i, curr_area);
+          curr_idx_start = -1;
+          curr_area = 0;
+        }
+
+      } else if (curr_idx_start != -1) {
+        laserSections.emplace_back(curr_idx_start, i - 1, curr_area);
+        curr_idx_start = -1;
+        curr_area = 0;
       }
     }
-    direction_ = msg->angle_min + idx * msg->angle_increment;
+
+    // now find largest area and set direction_ to the center idx value
+    double max_area;
+
+    for (const auto &section : laserSections) {
+      int start_idx = std::get<0>(section);
+      int end_idx = std::get<1>(section);
+      double area = std::get<2>(section);
+
+      if (area > max_area) {
+        max_area = area;
+        direction_ = msg->angle_min + (start_idx + (end_idx - start_idx) / 2) *
+                                          msg->angle_increment;
+      }
+    }
   }
 };
 
