@@ -22,6 +22,8 @@ find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -34,12 +36,32 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "srv/GetDirection.srv"
+  DEPENDENCIES sensor_msgs
+)
 
 add_executable(patrol_node src/patrol.cpp)
 ament_target_dependencies(patrol_node rclcpp std_msgs geometry_msgs sensor_msgs nav_msgs)
 
+add_executable(direction_service_node src/direction_service.cpp)
+ament_target_dependencies(direction_service_node rclcpp std_msgs geometry_msgs sensor_msgs nav_msgs)
+rosidl_target_interfaces(direction_service_node ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
+add_executable(test_service_node src/test_service.cpp)
+ament_target_dependencies(test_service_node rclcpp std_msgs geometry_msgs sensor_msgs nav_msgs)
+rosidl_target_interfaces(test_service_node ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
+add_executable(patrol_with_service_node src/patrol_with_service.cpp)
+ament_target_dependencies(patrol_with_service_node rclcpp std_msgs geometry_msgs sensor_msgs nav_msgs)
+rosidl_target_interfaces(patrol_with_service_node ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
+
 install(TARGETS
    patrol_node
+   direction_service_node
+   patrol_with_service_node
+   test_service_node
    DESTINATION lib/${PROJECT_NAME}
  )
 
@@ -47,5 +69,8 @@ install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME}/
 )
+
+
+
 
 ament_package()

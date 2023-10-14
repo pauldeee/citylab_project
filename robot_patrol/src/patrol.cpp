@@ -40,7 +40,6 @@ private:
     twist_.angular.z = direction_ / 2.0;
     twist_pub_->publish(twist_);
   }
-
   void scanCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
     int start = std::round((msg->ranges.size() - 1) * 0.25); // -pi/2
     int end = std::round((msg->ranges.size() - 1) * 0.75);   // +pi/2
@@ -56,8 +55,7 @@ private:
     for (int i = start; i <= end; i++) {
       if (!std::isinf(msg->ranges[i]) &&
           msg->ranges[i] > min_range) { // if range is valid
-
-        if (curr_idx_start == -1) { // set starting idx
+        if (curr_idx_start == -1) {     // set starting idx
           curr_idx_start = i;
         }
 
@@ -98,5 +96,6 @@ private:
 int main(int argc, char **argv) {
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<Patrol>());
+  rclcpp::shutdown();
   return 0;
 }
