@@ -19,10 +19,16 @@
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 
+
+
   <!-- for services -->
   <build_depend>rosidl_default_generators</build_depend>
   <exec_depend>rosidl_default_runtime</exec_depend>
+  <!-- for service and or action -->
   <member_of_group>rosidl_interface_packages</member_of_group>
+  <!-- for action -->
+  <depend>action_msgs</depend>
+
 
   <export>
     <build_type>ament_cmake</build_type>
