@@ -135,7 +135,13 @@ private:
 
     // THIRD -- face goal theta
     double goal_theta_radians = goal->goal_pos.theta * M_PI / 180.0;
-    turn(goal_theta_radians);
+    double final_turn = goal_theta_radians - current_pos_.theta;
+
+    // Normalize angle difference to [-M_PI, M_PI]
+    final_turn = atan2(sin(final_turn), cos(final_turn));
+
+    turn(final_turn);
+    // turn(goal_theta_radians);
 
     // END
     result->status = "The robot has reached the goal.";
@@ -187,18 +193,23 @@ private:
     twistPub_->publish(twist);
   }
 
-  void turn(double target_angle) {
+  void turn(double target_angle_difference) {
     auto twist = geometry_msgs::msg::Twist();
     rclcpp::Rate loop_rate(30);
     const double ANGLE_TOLERANCE = 0.025;
     const double MAX_TURN_SPEED = 0.5;
 
+    double initial_theta = current_pos_.theta;
+    double target_theta = initial_theta + target_angle_difference;
+
+    // normalize the target theta to [-M_PI, M_PI]
+    target_theta = atan2(sin(target_theta), cos(target_theta));
+
     while (true) {
-      double angle_diff = target_angle - current_pos_.theta;
-      if (angle_diff > M_PI)
-        angle_diff -= 2.0 * M_PI;
-      if (angle_diff < -M_PI)
-        angle_diff += 2.0 * M_PI;
+      double angle_diff = target_theta - current_pos_.theta;
+
+      // normalize angle difference to [-M_PI, M_PI]
+      angle_diff = atan2(sin(angle_diff), cos(angle_diff));
 
       if (fabs(angle_diff) <= ANGLE_TOLERANCE)
         break;
